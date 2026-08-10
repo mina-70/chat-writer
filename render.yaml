@@ -3,7 +3,7 @@ services:
     name: chat-writer
     runtime: node
     plan: free
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm run deploy:build
+    buildCommand: pnpm install --frozen-lockfile && pnpm run deploy:build
     startCommand: pnpm run start
     envVars:
       - key: NODE_ENV
