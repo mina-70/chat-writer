@@ -527,7 +527,7 @@ router.post("/chat", requireAuth, async (req, res) => {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "mistral-large-latest",
+        model: "mistral-small-latest",
         messages: [
           { role: "system", content: COACHING_SYSTEM_PROMPT },
           ...messages,
