@@ -541,7 +541,7 @@ router.post("/chat", requireAuth, async (req, res) => {
 
   try {
     const response = await mistralFetch({
-        model: process.env["MISTRAL_MODEL"]?.trim() || "mistral-small-latest",
+        model: process.env["MISTRAL_MODEL"]?.trim() || "mistral-small-2603",
         messages: [
           { role: "system", content: COACHING_SYSTEM_PROMPT },
           ...messages,
@@ -644,7 +644,7 @@ router.post("/chat/stream", requireAuth, async (req, res) => {
 
   try {
     const upstream = await mistralFetch({
-        model: "mistral-small-latest",
+        model: process.env["MISTRAL_MODEL"]?.trim() || "mistral-small-2603",
         messages: [
           { role: "system", content: VOICE_SYSTEM_PROMPT },
           ...messages,
