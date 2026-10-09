@@ -520,7 +520,7 @@ router.post("/chat", requireAuth, async (req, res) => {
   }
 
   try {
-    const response = await fetch((process.env["LLM_BASE_URL"] || "https://api.mistral.ai/v1") + "/chat/completions", {
+    const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -624,7 +624,7 @@ router.post("/chat/stream", requireAuth, async (req, res) => {
     .map((m) => ({ role: m.role, content: m.content }));
 
   try {
-    const upstream = await fetch((process.env["LLM_BASE_URL"] || "https://api.mistral.ai/v1") + "/chat/completions", {
+    const upstream = await fetch("https://api.mistral.ai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
