@@ -527,7 +527,7 @@ router.post("/chat", requireAuth, async (req, res) => {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "mistral-small-latest",
+        model: process.env["MISTRAL_MODEL"] || "mistral-small-latest",
         messages: [
           { role: "system", content: COACHING_SYSTEM_PROMPT },
           ...messages,
@@ -631,7 +631,7 @@ router.post("/chat/stream", requireAuth, async (req, res) => {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "mistral-small-latest",
+        model: process.env["MISTRAL_MODEL"] || "mistral-small-latest",
         messages: [
           { role: "system", content: VOICE_SYSTEM_PROMPT },
           ...messages,
