@@ -484,6 +484,26 @@ After the block, ask "Would you like me to put this in your document?" Do NOT in
 [INT-8.2] Once story elements are clear, draft sentences for each element, present them to the user for confirmation, and revise based on feedback before moving to the next element.
 [INT-8.3] Introduce the five-element storytelling framework (opening, challenge, action, climax, resolution) early and use it as shared vocabulary throughout — referring back to it when discussing each part of the abstract.`;
 
+// Retries Mistral calls when the free tier rate limit (429) is hit.
+async function mistralFetch(body: unknown, apiKey: string): Promise<Response> {
+  const delays = [1500, 3000, 6000, 10000];
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(body),
+    });
+    if (res.status !== 429 || attempt >= delays.length) return res;
+    await res.text().catch(() => "");
+    const retryAfter = Number(res.headers.get("retry-after"));
+    const wait = retryAfter > 0 ? Math.min(retryAfter * 1000, 15000) : delays[attempt];
+    await new Promise((r) => setTimeout(r, wait));
+  }
+}
+
 router.post("/chat", requireAuth, async (req, res) => {
   const apiKey = process.env["MISTRAL_API_KEY"]?.trim().replace(/^["']|["']$/g, "");
 
@@ -520,13 +540,7 @@ router.post("/chat", requireAuth, async (req, res) => {
   }
 
   try {
-    const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
+    const response = await mistralFetch({
         model: process.env["MISTRAL_MODEL"]?.trim() || "mistral-small-latest",
         messages: [
           { role: "system", content: COACHING_SYSTEM_PROMPT },
@@ -534,8 +548,7 @@ router.post("/chat", requireAuth, async (req, res) => {
         ],
         temperature: 0.6,
         max_tokens: 1024,
-      }),
-    });
+      }, apiKey);
 
     if (!response.ok) {
       const text = await response.text();
@@ -546,7 +559,9 @@ router.post("/chat", requireAuth, async (req, res) => {
       let detail = text;
       try { const j = JSON.parse(text); detail = j.message ?? j.detail ?? j.error ?? text; } catch {}
       res.status(502).json({
-        error: `Mistral API request failed (${response.status}): ${typeof detail === "string" ? detail : JSON.stringify(detail)}`.slice(0, 400),
+        error: response.status === 429
+          ? "Mistral free plan limit reached. Please wait a minute and try again."
+          : `Mistral API request failed (${response.status}): ${typeof detail === "string" ? detail : JSON.stringify(detail)}`.slice(0, 400),
       });
       return;
     }
@@ -628,13 +643,7 @@ router.post("/chat/stream", requireAuth, async (req, res) => {
     .map((m) => ({ role: m.role, content: m.content }));
 
   try {
-    const upstream = await fetch("https://api.mistral.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
+    const upstream = await mistralFetch({
         model: "mistral-small-latest",
         messages: [
           { role: "system", content: VOICE_SYSTEM_PROMPT },
@@ -643,8 +652,7 @@ router.post("/chat/stream", requireAuth, async (req, res) => {
         stream: true,
         max_tokens: 180,
         temperature: 0.7,
-      }),
-    });
+      }, apiKey);
 
     if (!upstream.ok) {
       const body = await upstream.text();
