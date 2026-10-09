@@ -485,7 +485,7 @@ After the block, ask "Would you like me to put this in your document?" Do NOT in
 [INT-8.3] Introduce the five-element storytelling framework (opening, challenge, action, climax, resolution) early and use it as shared vocabulary throughout — referring back to it when discussing each part of the abstract.`;
 
 router.post("/chat", requireAuth, async (req, res) => {
-  const apiKey = process.env["MISTRAL_API_KEY"];
+  const apiKey = process.env["MISTRAL_API_KEY"]?.trim().replace(/^["']|["']$/g, "");
 
   if (!apiKey) {
     req.log.error("MISTRAL_API_KEY is not configured");
@@ -527,7 +527,7 @@ router.post("/chat", requireAuth, async (req, res) => {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: process.env["MISTRAL_MODEL"] || "mistral-small-latest",
+        model: "mistral-large-latest",
         messages: [
           { role: "system", content: COACHING_SYSTEM_PROMPT },
           ...messages,
@@ -543,7 +543,11 @@ router.post("/chat", requireAuth, async (req, res) => {
         { status: response.status, body: text },
         "Mistral API request failed",
       );
-      res.status(502).json({ error: "Mistral API request failed" });
+      let detail = text;
+      try { const j = JSON.parse(text); detail = j.message ?? j.detail ?? j.error ?? text; } catch {}
+      res.status(502).json({
+        error: `Mistral API request failed (${response.status}): ${typeof detail === "string" ? detail : JSON.stringify(detail)}`.slice(0, 400),
+      });
       return;
     }
 
@@ -606,7 +610,7 @@ THROUGHOUT THE CONVERSATION:
 - Keep the conversation flowing naturally — this is a coaching call, not an interview.`;
 
 router.post("/chat/stream", requireAuth, async (req, res) => {
-  const apiKey = process.env["MISTRAL_API_KEY"];
+  const apiKey = process.env["MISTRAL_API_KEY"]?.trim().replace(/^["']|["']$/g, "");
   if (!apiKey) {
     res.status(500).json({ error: "Server is not configured" });
     return;
@@ -631,7 +635,7 @@ router.post("/chat/stream", requireAuth, async (req, res) => {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: process.env["MISTRAL_MODEL"] || "mistral-small-latest",
+        model: "mistral-small-latest",
         messages: [
           { role: "system", content: VOICE_SYSTEM_PROMPT },
           ...messages,
@@ -645,7 +649,7 @@ router.post("/chat/stream", requireAuth, async (req, res) => {
     if (!upstream.ok) {
       const body = await upstream.text();
       req.log.error({ status: upstream.status, body }, "Mistral stream failed");
-      res.status(502).json({ error: "Mistral stream failed" });
+      res.status(502).json({ error: `Mistral stream failed (${upstream.status}): ${body}`.slice(0, 400) });
       return;
     }
 
