@@ -541,7 +541,7 @@ router.post("/chat", requireAuth, async (req, res) => {
 
   try {
     const response = await mistralFetch({
-        model: process.env["MISTRAL_MODEL"]?.trim() || "mistral-small-2603",
+        model: process.env["MISTRAL_MODEL"]?.trim() || "ministral-14b-latest",
         messages: [
           { role: "system", content: COACHING_SYSTEM_PROMPT },
           ...messages,
@@ -577,7 +577,7 @@ router.post("/chat", requireAuth, async (req, res) => {
 });
 
 // ── Streaming voice endpoint ──────────────────────────────────────────────────
-// Uses mistral-small-latest (fast) with SSE streaming so the client can start
+// Uses ministral-14b-latest (fast) with SSE streaming so the client can start
 // speaking the first sentence before the full reply is ready.
 
 const VOICE_SYSTEM_PROMPT = `You are Abby, a warm, encouraging scientific writing coach having a voice call with a researcher. You are a human-centered AI: your primary role is to guide their thinking, not to write for them. Ask one focused question at a time and wait for their answer before moving on.
@@ -644,7 +644,7 @@ router.post("/chat/stream", requireAuth, async (req, res) => {
 
   try {
     const upstream = await mistralFetch({
-        model: process.env["MISTRAL_MODEL"]?.trim() || "mistral-small-2603",
+        model: process.env["MISTRAL_MODEL"]?.trim() || "ministral-14b-latest",
         messages: [
           { role: "system", content: VOICE_SYSTEM_PROMPT },
           ...messages,
